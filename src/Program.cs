@@ -5,19 +5,17 @@ using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
+ArgumentNullException.ThrowIfNull(builder.Configuration["ServiceControlApiClient:Url"]);
+ArgumentNullException.ThrowIfNull(builder.Configuration["ServiceControllerMonitoringApiClient:Url"]);
+
 builder.Services.AddHttpClient("ServiceControlApiClient", httpClient =>
 {
-
-    ArgumentNullException.ThrowIfNull(builder.Configuration["ServiceControlApiClient:Url"]);
-
     httpClient.BaseAddress = new Uri(builder.Configuration["ServiceControlApiClient:Url"]!);
     httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
 builder.Services.AddHttpClient("ServiceControllerMonitoringApiClient", httpClient =>
 {
-    ArgumentNullException.ThrowIfNull(builder.Configuration["ServiceControllerMonitoringApiClient:Url"]);
-
     httpClient.BaseAddress = new Uri(builder.Configuration["ServiceControllerMonitoringApiClient:Url"]!);
     httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
 });

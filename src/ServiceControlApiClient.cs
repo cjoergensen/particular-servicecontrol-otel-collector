@@ -1,6 +1,9 @@
-﻿using System.Diagnostics.Metrics;
+﻿namespace Collector;
 
-namespace Collector;
+public interface IServiceControlApiClient
+{
+    Task<int> GetNumberOfFailedMessages(CancellationToken cancellationToken);
+}
 
 public sealed class ServiceControlApiClient(IHttpClientFactory httpClientFactory) : IServiceControlApiClient
 {
@@ -22,9 +25,4 @@ public sealed class ServiceControlApiClient(IHttpClientFactory httpClientFactory
 
         return totalCount;
     }
-}
-
-public interface IServiceControlApiClient
-{
-    Task<int> GetNumberOfFailedMessages(CancellationToken cancellationToken);
 }

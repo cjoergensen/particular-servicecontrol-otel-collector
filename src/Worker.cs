@@ -23,35 +23,29 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
             numberOfFailedMessages = await serviceControlApiClient.GetNumberOfFailedMessages(stoppingToken);
             
             var endpoints = await serviceControllerMonitoringApiClient.GetEndpointsAsync(stoppingToken);
-            if (endpoints != null) 
+            foreach (var endpoint in endpoints)
             {
-                foreach (var endpoint in endpoints)
-                {
-                    AddOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(ProcessingTime)}", endpoint.Metrics.ProcessingTime.Average, "ms", "Processing time is the time it takes for an endpoint to successfully invoke all handlers and sagas for a single incoming message");
-                    AddOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(CriticalTime)}", endpoint.Metrics.CriticalTime.Average, "ms", "Critical time is the time between when a message is sent and when it is fully processed.");
-                    AddOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(QueueLength)}", endpoint.Metrics.QueueLength.Average, "msg", "This metric tracks the number of messages in the main input queue of an endpoint.");
-                    AddOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(Retries)}", endpoint.Metrics.Retries.Average, "count", "This metric measures the number of retries scheduled by the endpoint (immediate or delayed).");
-                    AddOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(Throughput)}", endpoint.Metrics.Throughput.Average, "msg/s", "This metric measures the total number of messages that the endpoint successfully processes per second.");
-                }
+                CreateOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(ProcessingTime)}", endpoint.Metrics.ProcessingTime.Average, "ms", "Processing time is the time it takes for an endpoint to successfully invoke all handlers and sagas for a single incoming message");
+                CreateOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(CriticalTime)}", endpoint.Metrics.CriticalTime.Average, "ms", "Critical time is the time between when a message is sent and when it is fully processed.");
+                CreateOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(QueueLength)}", endpoint.Metrics.QueueLength.Average, "msg", "This metric tracks the number of messages in the main input queue of an endpoint.");
+                CreateOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(Retries)}", endpoint.Metrics.Retries.Average, "count", "This metric measures the number of retries scheduled by the endpoint (immediate or delayed).");
+                CreateOrUpdateMetricGauge($"{MeterName}.{endpoint.Name}.{nameof(Throughput)}", endpoint.Metrics.Throughput.Average, "msg/s", "This metric measures the total number of messages that the endpoint successfully processes per second.");
             }
             await Task.Delay(10_000, stoppingToken);
         }
     }
 
-    void AddOrUpdateMetricGauge(string key, double value, string unit, string description)
+    void CreateOrUpdateMetricGauge(string key, double value, string unit, string description)
     {
         ArgumentNullException.ThrowIfNull(serviceControlMeter);
-
         key = key.ToLowerInvariant();
-        if (endpointMetricGauges.TryGetValue(key, out EndpointMetricGauge? metricGauge))
-        {
-            metricGauge.Value = value;
-        }
-        else
+        if (!endpointMetricGauges.TryGetValue(key, out EndpointMetricGauge? metricGauge))
         {
             metricGauge = new(key, value, serviceControlMeter.CreateObservableGauge(key, () => endpointMetricGauges[key].Value, unit, description));
             endpointMetricGauges.Add(key, metricGauge);
         }
+
+        metricGauge.Value = value;
     }
 }
 
