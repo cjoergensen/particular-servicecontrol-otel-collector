@@ -1,0 +1,21 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Collector": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:4000",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "OTEL_SERVICE_NAME": "christian1",
+        "OTEL_SERVICE_VERSION": "1.0.0",
+        "OTEL_SERVICE_NAMESPACE": "mdm2",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "https://mdm-test.seas.local:30443/datahub/v2/5790001095390/otel",
+        "OTEL_METRIC_EXPORT_INTERVAL": "30000",
+        "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+        "ServiceControlApiClient__Url": "http://servicebusau-p2:40000/",
+        "ServiceControllerMonitoringApiClient__Url": "http://servicebusau-p2:40002/"
+      }
+    }
+  }
+}
