@@ -2,9 +2,13 @@
 
 namespace Collector;
 
-public record CriticalTime(
-    [property: JsonPropertyName("average")] double Average,
-    [property: JsonPropertyName("points")] IReadOnlyList<double> Points
+public record Endpoint(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("isStale")] bool IsStale,
+    [property: JsonPropertyName("endpointInstanceIds")] IReadOnlyList<string> EndpointInstanceIds,
+    [property: JsonPropertyName("metrics")] Metrics Metrics,
+    [property: JsonPropertyName("disconnectedCount")] int DisconnectedCount,
+    [property: JsonPropertyName("connectedCount")] int ConnectedCount
 );
 
 public record Metrics(
@@ -20,7 +24,7 @@ public record ProcessingTime(
     [property: JsonPropertyName("points")] IReadOnlyList<double> Points
 );
 
-public record QueueLength(
+public record CriticalTime(
     [property: JsonPropertyName("average")] double Average,
     [property: JsonPropertyName("points")] IReadOnlyList<double> Points
 );
@@ -30,16 +34,12 @@ public record Retries(
     [property: JsonPropertyName("points")] IReadOnlyList<double> Points
 );
 
-public record Endpoint(
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("isStale")] bool IsStale,
-    [property: JsonPropertyName("endpointInstanceIds")] IReadOnlyList<string> EndpointInstanceIds,
-    [property: JsonPropertyName("metrics")] Metrics Metrics,
-    [property: JsonPropertyName("disconnectedCount")] int DisconnectedCount,
-    [property: JsonPropertyName("connectedCount")] int ConnectedCount
+public record Throughput(
+    [property: JsonPropertyName("average")] double Average,
+    [property: JsonPropertyName("points")] IReadOnlyList<double> Points
 );
 
-public record Throughput(
+public record QueueLength(
     [property: JsonPropertyName("average")] double Average,
     [property: JsonPropertyName("points")] IReadOnlyList<double> Points
 );

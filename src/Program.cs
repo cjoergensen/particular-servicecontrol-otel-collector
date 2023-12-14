@@ -21,7 +21,7 @@ builder.Services.AddHttpClient("ServiceControlMonitoringApiClient", httpClient =
 });
 
 builder.Services.AddSingleton<IServiceControlApiClient, ServiceControlApiClient>();
-builder.Services.AddSingleton<IServiceControllerMonitoringApiClient, ServiceControllerMonitoringApiClient>();
+builder.Services.AddSingleton<IServiceControlMonitoringApiClient, ServiceControlMonitoringApiClient>();
 builder.Services.AddHostedService<Worker>();
 
 var serviceName = OpenTelemetryHelper.GetServiceName(builder.Configuration);
