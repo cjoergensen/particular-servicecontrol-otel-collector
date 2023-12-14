@@ -11,7 +11,7 @@ public sealed class ServiceControllerMonitoringApiClient(IHttpClientFactory http
     public async Task<IReadOnlyList<Endpoint>> GetEndpointsAsync(CancellationToken cancellationToken)
     {
         const string path = "monitored-endpoints?history=1";
-        var httpClient = httpClientFactory.CreateClient("ServiceControllerMonitoringApiClient");
+        var httpClient = httpClientFactory.CreateClient("ServiceControlMonitoringApiClient");
         return await httpClient.GetFromJsonAsync<IReadOnlyList<Endpoint>>(path, cancellationToken) ?? [];
     }
 }   
