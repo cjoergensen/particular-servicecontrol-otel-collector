@@ -92,7 +92,7 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
         if (metricGauges.ContainsKey(key))
             return;
 
-        metricGauges.Add(key, serviceControlMeter.CreateObservableGauge(key, () => metricValues[key], unit, description));
+        metricGauges.Add(key, serviceControlMeter.CreateObservableGauge(key, () => metricValues.GetValueOrDefault(key, 0), unit, description));
 
     }
 }
