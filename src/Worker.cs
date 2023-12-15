@@ -28,28 +28,20 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
                 var endpoints = await serviceControllerMonitoringApiClient.GetEndpointsAsync(stoppingToken);
                 foreach (var endpoint in endpoints)
                 {
-                    SetMetricValue($"{endpoint.Name}.{nameof(ProcessingTime)}.avg", endpoint.Metrics.ProcessingTime.Average);
                     SetMetricValue($"{endpoint.Name}.{nameof(ProcessingTime)}", endpoint.Metrics.ProcessingTime.Points);
-                    SetMetricValue($"{endpoint.Name}.{nameof(CriticalTime)}.avg", endpoint.Metrics.CriticalTime.Average);
+                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(ProcessingTime)}", "ms", "Time it takes for an endpoint to successfully invoke all handlers and sagas for a single incoming message");
+                    
                     SetMetricValue($"{endpoint.Name}.{nameof(CriticalTime)}", endpoint.Metrics.CriticalTime.Points);
-                    SetMetricValue($"{endpoint.Name}.{nameof(QueueLength)}.avg", endpoint.Metrics.QueueLength.Average);
+                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(CriticalTime)}", "ms", "Time between when a message is sent and when it is fully processed.");
+                    
                     SetMetricValue($"{endpoint.Name}.{nameof(QueueLength)}", endpoint.Metrics.QueueLength.Points);
-                    SetMetricValue($"{endpoint.Name}.{nameof(Retries)}.avg", endpoint.Metrics.Retries.Average);
+                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(QueueLength)}", "msg", "Number of messages in the main input queue of an endpoint.");
+                    
                     SetMetricValue($"{endpoint.Name}.{nameof(Retries)}", endpoint.Metrics.Retries.Points);
-                    SetMetricValue($"{endpoint.Name}.{nameof(Throughput)}.avg", endpoint.Metrics.Throughput.Average);
+                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(Retries)}", "count", "Number of retries scheduled by the endpoint (immediate or delayed).");
+                    
                     SetMetricValue($"{endpoint.Name}.{nameof(Throughput)}", endpoint.Metrics.Throughput.Points);
-
-
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(ProcessingTime)}.avg",  "ms", "Average time it takes for an endpoint to successfully invoke all handlers and sagas for a single incoming message");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(ProcessingTime)}",      "ms", "Time it takes for an endpoint to successfully invoke all handlers and sagas for a single incoming message");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(CriticalTime)}.avg",    "ms", "Average time between when a message is sent and when it is fully processed.");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(CriticalTime)}",        "ms", "Time between when a message is sent and when it is fully processed.");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(QueueLength)}.avg",     "msg", "Average number of messages in the main input queue of an endpoint.");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(QueueLength)}",         "msg", "Number of messages in the main input queue of an endpoint.");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(Retries)}.avg",         "count", "Average number of retries scheduled by the endpoint (immediate or delayed).");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(Retries)}",             "count", "Number of retries scheduled by the endpoint (immediate or delayed).");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(Throughput)}.avg",      "msg/s", "Average number of messages that the endpoint successfully processes per second.");
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(Throughput)}",          "msg/s", "Number of messages that the endpoint successfully processes per second.");
+                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(Throughput)}", "msg/s", "Number of messages that the endpoint successfully processes per second.");
                 }
             }
             catch (Exception ex)
@@ -58,15 +50,6 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
             }
 
             await Task.Delay(30_000, stoppingToken);
-        }
-    }
-
-    void SetMetricValue(string key, double value)
-    {
-        key = key.ToLowerInvariant();
-        if(!metricValues.TryAdd(key, value))
-        {
-            metricValues[key] = value;
         }
     }
 
@@ -82,7 +65,6 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
             metricValues[key] = value;
         }
     }
-
 
     void CreateMetricGaugeIfNotExists(string key, string unit, string description)
     {
