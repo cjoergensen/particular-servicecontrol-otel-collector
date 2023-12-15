@@ -63,7 +63,8 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
 
     void SetMetricValue(string key, double value)
     {
-        if(!metricValues.TryAdd(key.ToLowerInvariant(), value))
+        key = key.ToLowerInvariant();
+        if(!metricValues.TryAdd(key, value))
         {
             metricValues[key] = value;
         }
@@ -75,7 +76,8 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
         if(points.Count > 0)
             value = points[points.Count - 1];
 
-        if (!metricValues.TryAdd(key.ToLowerInvariant(), value))
+        key = key.ToLowerInvariant();
+        if (!metricValues.TryAdd(key, value))
         {
             metricValues[key] = value;
         }
@@ -85,8 +87,8 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
     void CreateMetricGaugeIfNotExists(string key, string unit, string description)
     {
         ArgumentNullException.ThrowIfNull(serviceControlMeter);
+        
         key = key.ToLowerInvariant();
-
         if (metricGauges.ContainsKey(key))
             return;
 
