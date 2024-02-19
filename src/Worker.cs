@@ -1,12 +1,11 @@
+using Microsoft.Extensions.Options;
 using System.Diagnostics.Metrics;
 
 namespace Collector;
 
-public sealed class Worker(IServiceControlApiClient serviceControlApiClient, IServiceControlMonitoringApiClient serviceControllerMonitoringApiClient, IConfiguration configuration) : BackgroundService
+public sealed class Worker(IOptions<WorkerSettings> options, IServiceControlApiClient serviceControlApiClient, IServiceControlMonitoringApiClient serviceControllerMonitoringApiClient, IConfiguration configuration) : BackgroundService
 {
-    public const string MeterName = "servicecontrol";
     private Meter? serviceControlMeter;
-
     private int numberOfFailedMessages = 0;
     private readonly Dictionary<string, ObservableGauge<double>> metricGauges = [];
     private readonly Dictionary<string, double> metricValues = [];
@@ -17,8 +16,9 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
         string serviceVersion = OpenTelemetryHelper.GetServiceVersion(configuration);
         string serviceNamespace = OpenTelemetryHelper.GetServiceNamespace(configuration);
 
-        serviceControlMeter = new(MeterName, serviceVersion);
-        serviceControlMeter.CreateObservableGauge($"{MeterName}.failedmessages", () => numberOfFailedMessages, unit: "Messages", description: "Number of failed messages.");
+        var settings = options.Value;
+        serviceControlMeter = new(settings.MeterName, serviceVersion);
+        serviceControlMeter.CreateObservableGauge($"{settings.MeterName}.failedmessages", () => numberOfFailedMessages, unit: "Messages", description: "Number of failed messages.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -28,20 +28,25 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
                 var endpoints = await serviceControllerMonitoringApiClient.GetEndpointsAsync(stoppingToken);
                 foreach (var endpoint in endpoints)
                 {
-                    SetMetricValue($"{endpoint.Name}.{nameof(ProcessingTime)}", endpoint.Metrics.ProcessingTime.Points);
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(ProcessingTime)}", "ms", "Time it takes for an endpoint to successfully invoke all handlers and sagas for a single incoming message");
+                    var processingTimeKey = $"{endpoint.Name}.{nameof(ProcessingTime)}";
+                    SetMetricValue(processingTimeKey, endpoint.Metrics.ProcessingTime.Points);
+                    CreateMetricGaugeIfNotExists(processingTimeKey, "ms", "Time it takes for an endpoint to successfully invoke all handlers and sagas for a single incoming message");
                     
-                    SetMetricValue($"{endpoint.Name}.{nameof(CriticalTime)}", endpoint.Metrics.CriticalTime.Points);
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(CriticalTime)}", "ms", "Time between when a message is sent and when it is fully processed.");
+                    var criticalTimeKey = $"{endpoint.Name}.{nameof(CriticalTime)}";
+                    SetMetricValue(criticalTimeKey, endpoint.Metrics.CriticalTime.Points);
+                    CreateMetricGaugeIfNotExists(criticalTimeKey, "ms", "Time between when a message is sent and when it is fully processed.");
                     
-                    SetMetricValue($"{endpoint.Name}.{nameof(QueueLength)}", endpoint.Metrics.QueueLength.Points);
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(QueueLength)}", "msg", "Number of messages in the main input queue of an endpoint.");
+                    var queueLengthKey = $"{endpoint.Name}.{nameof(QueueLength)}";
+                    SetMetricValue(queueLengthKey, endpoint.Metrics.QueueLength.Points);
+                    CreateMetricGaugeIfNotExists(queueLengthKey, "msg", "Number of messages in the main input queue of an endpoint.");
                     
-                    SetMetricValue($"{endpoint.Name}.{nameof(Retries)}", endpoint.Metrics.Retries.Points);
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(Retries)}", "count", "Number of retries scheduled by the endpoint (immediate or delayed).");
+                    var retriesKey = $"{endpoint.Name}.{nameof(Retries)}";
+                    SetMetricValue(retriesKey, endpoint.Metrics.Retries.Points);
+                    CreateMetricGaugeIfNotExists(retriesKey, "count", "Number of retries scheduled by the endpoint (immediate or delayed).");
                     
-                    SetMetricValue($"{endpoint.Name}.{nameof(Throughput)}", endpoint.Metrics.Throughput.Points);
-                    CreateMetricGaugeIfNotExists($"{endpoint.Name}.{nameof(Throughput)}", "msg/s", "Number of messages that the endpoint successfully processes per second.");
+                    var throughputKey = $"{endpoint.Name}.{nameof(Throughput)}";
+                    SetMetricValue(throughputKey, endpoint.Metrics.Throughput.Points);
+                    CreateMetricGaugeIfNotExists(throughputKey, "msg/s", "Number of messages that the endpoint successfully processes per second.");
                 }
             }
             catch (Exception ex)
@@ -49,7 +54,7 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
                 Console.WriteLine(ex);
             }
 
-            await Task.Delay(30_000, stoppingToken);
+            await Task.Delay(settings.CollectionInterval, stoppingToken);
         }
     }
 
@@ -75,6 +80,5 @@ public sealed class Worker(IServiceControlApiClient serviceControlApiClient, ISe
             return;
 
         metricGauges.Add(key, serviceControlMeter.CreateObservableGauge(key, () => metricValues.GetValueOrDefault(key, 0), unit, description));
-
     }
 }

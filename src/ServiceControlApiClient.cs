@@ -2,6 +2,7 @@
 
 public interface IServiceControlApiClient
 {
+    public const string HttpClientName = "ServiceControlApiClient";
     Task<int> GetNumberOfFailedMessages(CancellationToken cancellationToken);
 }
 
@@ -11,7 +12,7 @@ public sealed class ServiceControlApiClient(IHttpClientFactory httpClientFactory
     {
         const string path = "errors?status=unresolved";
 
-        var httpClient = httpClientFactory.CreateClient("ServiceControlApiClient");
+        var httpClient = httpClientFactory.CreateClient(IServiceControlApiClient.HttpClientName);
         var response = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, path), cancellationToken);
         response.EnsureSuccessStatusCode();
 
