@@ -3,20 +3,34 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
+const string MeterNameEnvVarName = "METER_NAME";
+const string CollectionIntervalEnvVarName = "COLLECTION_INTERVAL";
+const string ServiceControlApiUrlEnvVarName = "SERVICE_CONTROL_API_URL";
+const string ServiceControlMonitoringApiUrlEnvVarName = "SERVICE_CONTROL_MONITORING_API_URL";
+
 var builder = WebApplication.CreateBuilder(args);
 
-ArgumentNullException.ThrowIfNull(builder.Configuration["ServiceControlApiClient:Url"]);
-ArgumentNullException.ThrowIfNull(builder.Configuration["ServiceControlMonitoringApiClient:Url"]);
+string meterName = builder.Configuration.GetValue(MeterNameEnvVarName, "servicecontrol")!;
 
-builder.Services.AddHttpClient("ServiceControlApiClient", httpClient =>
+builder.Services.Configure<WorkerSettings>(workersettings => 
 {
-    httpClient.BaseAddress = new Uri(builder.Configuration["ServiceControlApiClient:Url"]!);
+    workersettings.CollectionInterval = builder.Configuration.GetValue(CollectionIntervalEnvVarName, TimeSpan.FromSeconds(30)); ;
+    workersettings.MeterName = meterName;
+});
+
+ArgumentException.ThrowIfNullOrWhiteSpace(builder.Configuration[ServiceControlApiUrlEnvVarName]);
+Uri serviceControlApiUri = new(builder.Configuration[ServiceControlApiUrlEnvVarName]!);
+builder.Services.AddHttpClient(IServiceControlApiClient.HttpClientName, httpClient =>
+{
+    httpClient.BaseAddress = serviceControlApiUri;
     httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
-builder.Services.AddHttpClient("ServiceControlMonitoringApiClient", httpClient =>
+ArgumentException.ThrowIfNullOrWhiteSpace(builder.Configuration[ServiceControlMonitoringApiUrlEnvVarName]);
+Uri serviceControlMonitoringApiUri = new(builder.Configuration[ServiceControlMonitoringApiUrlEnvVarName]!);
+builder.Services.AddHttpClient(IServiceControlMonitoringApiClient.HttpClientName, httpClient =>
 {
-    httpClient.BaseAddress = new Uri(builder.Configuration["ServiceControlMonitoringApiClient:Url"]!);
+    httpClient.BaseAddress = serviceControlMonitoringApiUri;
     httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
@@ -32,7 +46,7 @@ builder.Services.AddOpenTelemetry()
     .ConfigureResource(configure => configure.AddService(serviceName: serviceName, serviceNamespace: serviceNamespace, serviceVersion: serviceVersion, serviceInstanceId: Environment.MachineName))
     .WithMetrics(otelBuilder => 
         otelBuilder
-            .AddMeter(Worker.MeterName)
+            .AddMeter(meterName)
                 .AddOtlpExporter());
 
 var app = builder.Build();
